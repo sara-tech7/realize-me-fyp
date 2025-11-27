@@ -1,0 +1,28 @@
+ /* 1) Google Fonts MUST be the very first line */
+ @import url("https://fonts.googleapis.com/css2?family=Raleway:wght@400;600;700;800&family=Roboto:wght@300;400;500;700&display=swap");
+
+ /* 2) Tailwind comes second */
+ @import "tailwindcss";
+
+ /* 3) Your custom CSS */
+ .font-raleway {
+     font-family: "Raleway", sans-serif;
+ }
+
+ .font-roboto {
+     font-family: "Roboto", sans-serif;
+ }
+
+ @keyframes scan {
+     0% {
+         transform: translateY(-100%);
+     }
+
+     100% {
+         transform: translateY(100%);
+     }
+ }
+
+ .animate-scan {
+     animation: scan 3s linear infinite;
+ }
