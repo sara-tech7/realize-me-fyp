@@ -12,7 +12,7 @@ export default function Hero() {
 
                     <div className="flex justify-center lg:justify-start">
                         <Badge className="bg-white border-gray-200 shadow-sm gap-2 pr-3 font-roboto">
-                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#D946EF]">
+                            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-linear-to-r from-[#8B5CF6] to-[#D946EF]">
                                 <Sparkles className="h-3 w-3 text-white" />
                             </span>
                             Powered by AI
@@ -21,7 +21,7 @@ export default function Hero() {
 
                     <h1 className="text-4xl md:text-5xl lg:text-7xl font-extrabold font-raleway leading-[1.1]">
                         Turn your sketches into <br />
-                        <span className="bg-gradient-to-r from-[#8B5CF6] via-[#D946EF] to-[#FCA5A5] bg-clip-text text-transparent">
+                        <span className="bg-linear-to-r from-[#8B5CF6] via-[#D946EF] to-[#FCA5A5] bg-clip-text text-transparent">
                             real fashion
                         </span>
                     </h1>
@@ -52,12 +52,12 @@ export default function Hero() {
                         <img
                             src="\hero-sketch.png"
                             alt="AI fashion example"
-                            className="w-full object-cover aspect-[4/3]"
+                            className="w-full object-cover aspect-4/3"
                         />
                     </div>
 
                     {/* Glow */}
-                    <div className="absolute -inset-4 bg-gradient-to-r from-[#8B5CF6] to-[#06B6D4] opacity-20 blur-3xl -z-10 rounded-full" />
+                    <div className="absolute -inset-4 bg-linear-to-r from-[#8B5CF6] to-[#06B6D4] opacity-20 blur-3xl -z-10 rounded-full" />
                 </div>
 
             </div>
