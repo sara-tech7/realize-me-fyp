@@ -12,8 +12,8 @@ export default function Footer() {
           {/* Brand Block */}
           <div className="lg:col-span-2 space-y-6">
             <div className="flex items-center gap-2 text-white">
-              <div className="flex h-8 w-8 items-center justify-center rounded bg-gradient-to-br from-[#8B5CF6] to-[#06B6D4] font-bold font-raleway">R</div>
-              <span className="text-xl font-bold font-raleway">Realize</span>
+              <div className="flex h-8 w-8 items-center justify-center rounded bg-linear-to-br from-[#8B5CF6] to-[#06B6D4] font-bold font-raleway">R</div>
+              <span className="text-xl font-bold font-raleway">RealizeMe</span>
             </div>
 
             <p className="text-sm font-medium text-white">
