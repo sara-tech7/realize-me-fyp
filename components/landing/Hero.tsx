@@ -1,4 +1,5 @@
 import { ArrowRight, Play, Sparkles } from "lucide-react";
+import Link from "next/link";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 
@@ -33,10 +34,12 @@ export default function Hero() {
                     </p>
 
                     <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-4 pt-2">
-                        <Button variant="gradient" size="lg" className="font-raleway font-bold group">
-                            Start Sketching
-                            <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                        </Button>
+                        <Link href="/designer">
+                            <Button variant="gradient" size="lg" className="font-raleway font-bold group">
+                                Start Sketching
+                                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                            </Button>
+                        </Link>
 
                         <Button variant="secondary" size="lg" className="gap-2">
                             <Play className="h-4 w-4" />
