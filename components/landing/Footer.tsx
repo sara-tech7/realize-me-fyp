@@ -22,7 +22,7 @@ export default function Footer() {
 
             <p className="text-sm leading-relaxed max-w-xs">
               Made with curiosity, creativity, and a little bit of AI to help
-              you find exactly what you're looking for.
+              you find exactly what you&apos;re looking for.
             </p>
           </div>
 

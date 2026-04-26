@@ -3,19 +3,35 @@
 import DesignerCanvas from '@/components/tldraw/DesignerCanvas';
 import CanvasGuidePanel from "@/components/designer/CanvasGuidePanel";
 import Link from 'next/link';
-import { useState } from 'react';
+import { type ButtonHTMLAttributes, type ReactNode, useState } from 'react';
 import { PanelLeft, PenSquare, Search, Library, Settings, Menu } from 'lucide-react';
 
 // --- 1. Helper Button Component ---
-const Button = ({ variant = 'default', size = 'default', className = '', children, ...props }: any) => {
+type ButtonVariant = 'default' | 'ghostDark';
+type ButtonSize = 'default' | 'icon';
+
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+    variant?: ButtonVariant;
+    size?: ButtonSize;
+    className?: string;
+    children: ReactNode;
+};
+
+const Button = ({
+    variant = 'default',
+    size = 'default',
+    className = '',
+    children,
+    ...props
+}: ButtonProps) => {
     const baseStyles = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 font-roboto";
 
-    const variants: any = {
+    const variants: Record<ButtonVariant, string> = {
         default: "bg-purple-600 text-white hover:bg-purple-700", // Standardized to Global Theme
         ghostDark: "hover:bg-gray-800 text-gray-400 hover:text-white",
     };
 
-    const sizes: any = {
+    const sizes: Record<ButtonSize, string> = {
         default: "h-10 px-4 py-2",
         icon: "h-9 w-9 rounded-md",
     };

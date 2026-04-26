@@ -1,5 +1,5 @@
 // lib/tldraw-utils.ts
-import { Editor } from 'tldraw';
+import { Editor, TLStoreSnapshot } from 'tldraw';
 
 /**
  * Export current canvas to PNG blob using correct TLDraw v2 API
@@ -110,7 +110,7 @@ export function getEditorSnapshot(editor: Editor) {
 /**
  * Load snapshot into editor
  */
-export function loadEditorSnapshot(editor: Editor, snapshot: any) {
+export function loadEditorSnapshot(editor: Editor, snapshot: TLStoreSnapshot) {
     try {
         // Load snapshot using the correct method
         editor.store.loadStoreSnapshot(snapshot);
