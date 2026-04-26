@@ -1,5 +1,6 @@
 'use client';
 
+import type { TLFilesExternalContent } from '@tldraw/editor';
 import { useEditor, useValue } from 'tldraw';
 import { useEffect } from 'react';
 import { MousePointer2, Hand, Pencil, Eraser, Image as ImageIcon, Wand2 } from 'lucide-react';
@@ -33,14 +34,15 @@ export default function CustomToolbar() {
         input.type = "file";
         input.accept = "image/png, image/jpeg, image/jpg, image/webp";
 
-        input.onchange = async (e: any) => {
-            const file = e.target.files?.[0];
+        input.onchange = async () => {
+            const file = input.files?.[0];
             if (file) {
-                await editor.putExternalContent({
+                const content: TLFilesExternalContent = {
                     type: "files",
                     files: [file],
-                    point: editor.getViewportPageBounds().center,
-                });
+                };
+
+                await editor.putExternalContent(content);
             }
         };
 

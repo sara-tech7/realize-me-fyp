@@ -1,9 +1,18 @@
 'use client';
 
-import { useEditor, useValue, DefaultColorStyle, DefaultSizeStyle, DefaultDashStyle } from 'tldraw';
+import {
+    useEditor,
+    useValue,
+    DefaultColorStyle,
+    DefaultSizeStyle,
+    DefaultDashStyle,
+    type TLDefaultColorStyle,
+    type TLDefaultDashStyle,
+    type TLDefaultSizeStyle,
+} from 'tldraw';
 import { useEffect } from 'react';
 
-const COLORS = [
+const COLORS: Array<{ name: TLDefaultColorStyle; hex: string }> = [
     { name: 'black', hex: '#1d1d1d' },
     { name: 'grey', hex: '#adb5bd' },
     { name: 'light-violet', hex: '#e9d5ff' },
@@ -24,6 +33,16 @@ const OPACITIES = [
     { label: '100%', value: '1' },
 ];
 
+function normalizeSharedValue<T extends string>(
+    value: T | { type: 'mixed' } | { type: 'shared'; value: T } | null | undefined
+) {
+    if (!value) return null;
+    if (typeof value === 'object') {
+        return value.type === 'shared' ? value.value : null;
+    }
+    return value;
+}
+
 export default function CustomStylePanel() {
     const editor = useEditor();
 
@@ -36,44 +55,39 @@ export default function CustomStylePanel() {
         }
     }, [editor]);
 
-    // 2. Track Active Styles (With Type Safety Fixes)
-    // FIX: Added 'as any' to bypass TypeScript overlap errors
     const currentColor = useValue('current color', () => {
         if (!editor) return 'black';
         if (editor.getSelectedShapes().length > 0) {
-            const val = editor.getSharedStyles().get(DefaultColorStyle) as any;
-            return val === 'mixed' ? null : val;
+            return normalizeSharedValue(editor.getSharedStyles().get(DefaultColorStyle));
         }
-        return editor.getStyleForNextShape(DefaultColorStyle) as any;
+        return editor.getStyleForNextShape(DefaultColorStyle);
     }, [editor]);
 
     const currentDash = useValue('current dash', () => {
         if (!editor) return 'solid';
         if (editor.getSelectedShapes().length > 0) {
-            const val = editor.getSharedStyles().get(DefaultDashStyle) as any;
-            return val === 'mixed' ? null : val;
+            return normalizeSharedValue(editor.getSharedStyles().get(DefaultDashStyle));
         }
-        return editor.getStyleForNextShape(DefaultDashStyle) as any;
+        return editor.getStyleForNextShape(DefaultDashStyle);
     }, [editor]);
 
     const currentSize = useValue('current size', () => {
         if (!editor) return 's';
         if (editor.getSelectedShapes().length > 0) {
-            const val = editor.getSharedStyles().get(DefaultSizeStyle) as any;
-            return val === 'mixed' ? null : val;
+            return normalizeSharedValue(editor.getSharedStyles().get(DefaultSizeStyle));
         }
-        return editor.getStyleForNextShape(DefaultSizeStyle) as any;
+        return editor.getStyleForNextShape(DefaultSizeStyle);
     }, [editor]);
 
     if (!editor) return null;
 
     // --- Actions ---
-    function setColor(color: string) {
+    function setColor(color: TLDefaultColorStyle) {
         editor.run(() => {
-            editor.setStyleForNextShapes(DefaultColorStyle, color as any);
+            editor.setStyleForNextShapes(DefaultColorStyle, color);
             const selectedShapes = editor.getSelectedShapes();
             if (selectedShapes.length > 0) {
-                editor.setStyleForSelectedShapes(DefaultColorStyle, color as any);
+                editor.setStyleForSelectedShapes(DefaultColorStyle, color);
             }
         });
     }
@@ -89,7 +103,7 @@ export default function CustomStylePanel() {
         });
     }
 
-    function setDash(dash: 'draw' | 'solid') {
+    function setDash(dash: TLDefaultDashStyle) {
         editor.run(() => {
             editor.setStyleForNextShapes(DefaultDashStyle, dash);
             const selectedShapes = editor.getSelectedShapes();
@@ -99,7 +113,7 @@ export default function CustomStylePanel() {
         });
     }
 
-    function setSize(size: 's' | 'm') {
+    function setSize(size: TLDefaultSizeStyle) {
         editor.run(() => {
             editor.setStyleForNextShapes(DefaultSizeStyle, size);
             const selectedShapes = editor.getSelectedShapes();
