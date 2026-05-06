@@ -9,6 +9,13 @@
     --realize-text: #1F2937;
     --realize-border: #e5e7eb;
     --realize-gradient: linear-gradient(to right, #8B5CF6, #D946EF, #06B6D4);
+    /*
+     * Results page (archive — was applied via .bg-realize-gradient before fuchsia theme):
+     * linear-gradient(to right, #8B5CF6, #D946EF, #06B6D4);
+     * Same as --realize-gradient above.
+     */
+    /* Option 2: Soft Fuchsia — warm / dreamy (results page; use dark text on top) */
+    --realize-gradient-fuchsia: linear-gradient(135deg, #b5a3f0 0%, #c9b5f5 25%, #e9b8ec 50%, #a8d8ec 75%, #87c5d6 100%);
 }
 
 /* Background + Text */
@@ -23,6 +30,10 @@
 /* Gradient (buttons, headers) */
 .bg-realize-gradient {
     background-image: var(--realize-gradient);
+}
+
+.bg-realize-gradient-fuchsia {
+    background-image: var(--realize-gradient-fuchsia);
 }
 
 /* Borders */

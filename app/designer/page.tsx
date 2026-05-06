@@ -2,20 +2,43 @@
 
 import DesignerCanvas from '@/components/tldraw/DesignerCanvas';
 import CanvasGuidePanel from "@/components/designer/CanvasGuidePanel";
-import Link from 'next/link';
-import { useState } from 'react';
-import { PanelLeft, PenSquare, Search, Library, Settings, Menu } from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { type ButtonHTMLAttributes, type ReactNode, useEffect, useState, Suspense } from 'react';
+import { PanelLeft, PenSquare, Search, Library, Settings, Menu, LogOut } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { hasClientAuthSession, isAuthRequired, shouldSkipDesignerAuthInDevelopment } from '@/lib/auth-flags';
+import { BrandLogo } from '@/components/BrandLogo';
+import { INTERACTIVE_BUTTON_MOTION } from '@/lib/interactive-button-motion';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { isFirebaseConfigured } from '@/lib/firebase/config';
+import { getDesignerLoginHref } from '@/lib/designer-auth-redirect';
 
 // --- 1. Helper Button Component ---
-const Button = ({ variant = 'default', size = 'default', className = '', children, ...props }: any) => {
-    const baseStyles = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 font-roboto";
+type ButtonVariant = 'default' | 'ghostDark';
+type ButtonSize = 'default' | 'icon';
 
-    const variants: any = {
+type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+    variant?: ButtonVariant;
+    size?: ButtonSize;
+    className?: string;
+    children: ReactNode;
+};
+
+const Button = ({
+    variant = 'default',
+    size = 'default',
+    className = '',
+    children,
+    ...props
+}: ButtonProps) => {
+    const baseStyles = `inline-flex items-center justify-center rounded-md text-sm font-medium ${INTERACTIVE_BUTTON_MOTION} focus-visible:outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 font-roboto`;
+
+    const variants: Record<ButtonVariant, string> = {
         default: "bg-purple-600 text-white hover:bg-purple-700", // Standardized to Global Theme
         ghostDark: "hover:bg-gray-800 text-gray-400 hover:text-white",
     };
 
-    const sizes: any = {
+    const sizes: Record<ButtonSize, string> = {
         default: "h-10 px-4 py-2",
         icon: "h-9 w-9 rounded-md",
     };
@@ -30,8 +53,38 @@ const Button = ({ variant = 'default', size = 'default', className = '', childre
     );
 };
 
-export default function DesignerPage() {
+function DesignerPageInner() {
     const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(true);
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const reduceMotion = useReducedMotion();
+    const { user, loading: authLoading, signOut, configured: firebaseConfigured } = useAuth();
+
+    useEffect(() => {
+        if (shouldSkipDesignerAuthInDevelopment()) {
+            return;
+        }
+        if (isFirebaseConfigured()) {
+            if (!authLoading && !user) {
+                router.replace(getDesignerLoginHref(pathname, searchParams));
+            }
+            return;
+        }
+        if (isAuthRequired() && !hasClientAuthSession()) {
+            router.replace('/login?next=/designer');
+        }
+    }, [router, pathname, searchParams, authLoading, user]);
+
+    const handleSignOut = async () => {
+        try {
+            await signOut();
+        } finally {
+            router.replace('/login');
+        }
+    };
+
+    const accountLabel = user?.email ?? user?.displayName ?? null;
 
     return (
         // Applied Global Gradient Theme
@@ -81,7 +134,7 @@ export default function DesignerPage() {
             {!isLeftSidebarOpen && (
                 <button
                     onClick={() => setIsLeftSidebarOpen(true)}
-                    className="fixed left-4 top-24 z-20 bg-white border border-gray-300 rounded-lg p-2 shadow-lg hover:bg-gray-50 transition"
+                    className={`fixed left-4 top-24 z-20 bg-white border border-gray-300 rounded-lg p-2 shadow-lg hover:bg-gray-50 ${INTERACTIVE_BUTTON_MOTION}`}
                     title="Open Sidebar"
                 >
                     <Menu className="w-5 h-5 text-gray-700" />
@@ -90,24 +143,52 @@ export default function DesignerPage() {
 
             {/* --- 4. MAIN CONTENT --- */}
             <main className="flex-1 flex flex-col min-w-0">
-                {/* Top Bar */}
-                <header className="shrink-0 flex items-center justify-between border-b border-gray-200 bg-white/80 backdrop-blur-md px-6 py-4">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold text-lg shadow-md">
-                            R
-                        </div>
-                        <div>
-                            <h1 className="text-lg font-bold text-gray-900 font-raleway">RealizeMe</h1>
-                            <p className="text-xs text-gray-500">Design Canvas</p>
-                        </div>
-                    </div>
-                    <Link
-                        href="/"
-                        className="text-sm text-gray-600 hover:text-gray-900 transition font-medium"
+                {/* Top bar: flex layout only (not position:sticky) */}
+                <motion.header
+                    initial={reduceMotion ? false : { opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={
+                        reduceMotion
+                            ? { duration: 0 }
+                            : { type: 'spring', stiffness: 320, damping: 32 }
+                    }
+                    className="shrink-0 flex items-center justify-between border-b border-gray-200 bg-white/80 backdrop-blur-md px-6 py-4"
+                >
+                    <motion.div
+                        className="flex items-center"
+                        whileHover={reduceMotion ? undefined : { x: 2 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 28 }}
                     >
-                        ← Back to Home
-                    </Link>
-                </header>
+                        <BrandLogo theme="light" subtitle="Design Canvas" />
+                    </motion.div>
+                    <motion.div
+                        className="flex items-center gap-4"
+                        whileHover={reduceMotion ? undefined : { x: -2 }}
+                        whileTap={reduceMotion ? undefined : { scale: 0.98 }}
+                    >
+                        {firebaseConfigured && accountLabel ? (
+                            <span className="hidden max-w-[10rem] truncate text-xs text-gray-500 sm:inline md:max-w-[14rem]">
+                                {accountLabel}
+                            </span>
+                        ) : null}
+                        {firebaseConfigured && user ? (
+                            <motion.button
+                                type="button"
+                                onClick={() => void handleSignOut()}
+                                whileHover={reduceMotion ? undefined : { y: -2 }}
+                                whileTap={reduceMotion ? undefined : { scale: 0.97 }}
+                                transition={{ type: 'spring', stiffness: 420, damping: 28 }}
+                                className="group inline-flex items-center gap-2 rounded-xl border border-violet-200/90 bg-white/95 px-3.5 py-2 text-sm font-semibold text-slate-800 shadow-sm ring-1 ring-violet-500/10 backdrop-blur-sm transition-[background-color,box-shadow,border-color,color,ring-color] duration-200 ease-out hover:border-violet-300 hover:bg-realize-gradient-fuchsia hover:text-slate-900 hover:shadow-md hover:ring-violet-400/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/45 focus-visible:ring-offset-2"
+                            >
+                                <LogOut
+                                    className="h-4 w-4 shrink-0 text-violet-600 transition-[transform,color] duration-200 ease-out group-hover:translate-x-0.5 group-hover:text-violet-900 motion-reduce:group-hover:translate-x-0"
+                                    aria-hidden
+                                />
+                                Log out
+                            </motion.button>
+                        ) : null}
+                    </motion.div>
+                </motion.header>
 
                 {/* Canvas Area */}
                 <div className="flex-1 flex gap-6 p-6 min-h-0">
@@ -123,5 +204,21 @@ export default function DesignerPage() {
                 </div>
             </main>
         </div>
+    );
+}
+
+function DesignerPageFallback() {
+    return (
+        <div className="flex h-screen items-center justify-center bg-gradient-to-br from-purple-50 via-white to-blue-50 font-roboto">
+            <p className="text-sm text-gray-600">Loading…</p>
+        </div>
+    );
+}
+
+export default function DesignerPage() {
+    return (
+        <Suspense fallback={<DesignerPageFallback />}>
+            <DesignerPageInner />
+        </Suspense>
     );
 }

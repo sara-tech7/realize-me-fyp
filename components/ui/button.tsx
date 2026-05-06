@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { INTERACTIVE_BUTTON_MOTION } from "@/lib/interactive-button-motion";
 
 type ButtonVariant = "default" | "gradient" | "ghost" | "secondary";
 type ButtonSize = "default" | "sm" | "lg";
@@ -17,8 +18,7 @@ export function Button({
   children,
   ...props
 }: ButtonProps) {
-  const base =
-    "inline-flex items-center justify-center rounded-full text-sm font-medium transition-all focus-visible:ring-2 disabled:opacity-50 disabled:pointer-events-none";
+  const base = `inline-flex items-center justify-center rounded-full text-sm font-medium ${INTERACTIVE_BUTTON_MOTION} focus-visible:ring-2 disabled:opacity-50 disabled:pointer-events-none`;
 
   const variants: Record<ButtonVariant, string> = {
     default: "bg-[#1F2937] text-white hover:bg-[#1F2937]/90",

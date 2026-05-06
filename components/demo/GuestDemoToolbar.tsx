@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { GeoShapeGeoStyle, useEditor, useValue } from 'tldraw';
 import { useEffect, useState, type ComponentType } from 'react';
 import {
@@ -7,7 +8,7 @@ import {
     Hand,
     Pencil,
     Eraser,
-    Wand2,
+    LogIn,
     Undo2,
     Redo2,
     Trash2,
@@ -23,8 +24,6 @@ import {
     Cloud,
     Heart,
 } from 'lucide-react';
-
-import { useGenerateFlow } from './GenerateFlowContext';
 
 type AllowedGeoShape =
     | 'rectangle'
@@ -89,13 +88,13 @@ function ShapePreview({ shape }: { shape: AllowedGeoShape | 'line' }) {
     return <Icon size={18} />;
 }
 
-export default function CustomToolbar() {
-    const { isGenerating, notifyEmptyCanvas } = useGenerateFlow();
+const LOGIN_FULL_WORKSPACE = '/login?next=%2Fdesigner';
+
+export default function GuestDemoToolbar() {
     const editor = useEditor();
     const [isShapeMenuOpen, setIsShapeMenuOpen] = useState(false);
     const [activeGeoShape, setActiveGeoShape] = useState<AllowedGeoShape>('rectangle');
 
-    // Default tool = draw
     useEffect(() => {
         if (editor) editor.setCurrentTool('draw');
     }, [editor]);
@@ -109,20 +108,8 @@ export default function CustomToolbar() {
         () => (editor?.getSelectedShapeIds().length ?? 0) > 0,
         [editor]
     );
-    const hasCanvasShapes = useValue(
-        'has canvas shapes',
-        () => ((editor ? Array.from(editor.getCurrentPageShapeIds()).length : 0) > 0),
-        [editor]
-    );
 
     if (!editor) return null;
-
-    const generateInactive = !hasCanvasShapes || isGenerating;
-    const generateTitle = !hasCanvasShapes
-        ? 'Draw on canvas first, then generate'
-        : isGenerating
-            ? 'Generation in progress — please wait'
-            : 'Generate from current sketch';
 
     const tools = [
         { id: 'select', icon: MousePointer2, label: 'Select' },
@@ -155,7 +142,6 @@ export default function CustomToolbar() {
         ? 'Line'
         : (ALLOWED_SHAPES.find((shape) => shape.id === activeGeoShape)?.label ?? 'Shape');
 
-    // 🌈 BRAND THEME BUTTONS (Smooth gradients)
     const activeBtn =
         'bg-gradient-to-r from-[#8B5CF6] via-[#D946EF] to-[#06B6D4] text-white shadow-realize-xl scale-[1.07] border border-realize transition-all duration-300';
 
@@ -173,7 +159,6 @@ export default function CustomToolbar() {
                 bg-white/80 backdrop-blur-2xl
             "
         >
-            {/* === Tool Buttons === */}
             {tools.map((tool) => {
                 const Icon = tool.icon;
                 const isActive = currentToolId === tool.id;
@@ -181,6 +166,7 @@ export default function CustomToolbar() {
                 return (
                     <button
                         key={tool.id}
+                        type="button"
                         onClick={() => editor.setCurrentTool(tool.id)}
                         className={`p-3 rounded-xl ${isActive ? activeBtn : inactiveBtn}`}
                         title={`Switch to ${tool.label} tool`}
@@ -190,7 +176,6 @@ export default function CustomToolbar() {
                 );
             })}
 
-            {/* === Allowed Shapes Menu === */}
             <div className="relative">
                 {isShapeMenuOpen && (
                     <div className="absolute bottom-[calc(100%+10px)] left-0 z-[10000] w-48 rounded-xl border border-realize bg-white shadow-realize-xl p-2">
@@ -198,6 +183,7 @@ export default function CustomToolbar() {
                             {ALLOWED_SHAPES.map((shape) => (
                                 <button
                                     key={shape.id}
+                                    type="button"
                                     onClick={() => handleGeoShapeSelect(shape.id)}
                                     className={`h-9 w-9 flex items-center justify-center rounded-lg ${currentToolId === 'geo' && activeGeoShape === shape.id ? activeBtn : inactiveBtn}`}
                                     title={`Use ${shape.label} shape`}
@@ -206,6 +192,7 @@ export default function CustomToolbar() {
                                 </button>
                             ))}
                             <button
+                                type="button"
                                 onClick={handleLineToolSelect}
                                 className={`h-9 w-9 flex items-center justify-center rounded-lg ${currentToolId === 'line' ? activeBtn : inactiveBtn}`}
                                 title="Use Line shape"
@@ -217,6 +204,7 @@ export default function CustomToolbar() {
                 )}
 
                 <button
+                    type="button"
                     onClick={() => setIsShapeMenuOpen((open) => !open)}
                     className={`p-3 rounded-xl ${currentToolId === 'geo' || currentToolId === 'line' ? activeBtn : inactiveBtn}`}
                     title="Choose shape tool"
@@ -224,16 +212,19 @@ export default function CustomToolbar() {
                     <div className="flex items-center gap-1">
                         <Shapes size={18} />
                         <span className="text-xs font-medium">{activeShapeLabel}</span>
-                        {currentToolId === 'line' ? <Minus size={16} /> : <ChevronUp size={14} className={`${isShapeMenuOpen ? 'rotate-180' : ''} transition-transform`} />}
+                        {currentToolId === 'line' ? (
+                            <Minus size={16} />
+                        ) : (
+                            <ChevronUp size={14} className={`${isShapeMenuOpen ? 'rotate-180' : ''} transition-transform`} />
+                        )}
                     </div>
                 </button>
             </div>
 
-            {/* Divider */}
             <div className="w-[1px] h-8 bg-realize mx-2" />
 
-            {/* === History / Delete Actions === */}
             <button
+                type="button"
                 onClick={() => editor.undo()}
                 disabled={!canUndo}
                 className={`p-3 rounded-xl ${inactiveBtn} ${disabledBtn}`}
@@ -243,6 +234,7 @@ export default function CustomToolbar() {
             </button>
 
             <button
+                type="button"
                 onClick={() => editor.redo()}
                 disabled={!canRedo}
                 className={`p-3 rounded-xl ${inactiveBtn} ${disabledBtn}`}
@@ -252,6 +244,7 @@ export default function CustomToolbar() {
             </button>
 
             <button
+                type="button"
                 onClick={handleDeleteSelected}
                 disabled={!hasSelection}
                 className={`p-3 rounded-xl ${inactiveBtn} ${disabledBtn}`}
@@ -260,28 +253,15 @@ export default function CustomToolbar() {
                 <Trash2 size={20} />
             </button>
 
-            {/* === Generate Button === */}
-            <button
-                type="button"
-                onClick={() => {
-                    if (isGenerating) return;
-                    if (!hasCanvasShapes) {
-                        notifyEmptyCanvas();
-                        return;
-                    }
-                    document.getElementById('realize-btn')?.click();
-                }}
-                title={generateTitle}
-                aria-disabled={generateInactive}
-                className={`
-                    relative px-7 py-3 rounded-xl font-raleway font-bold text-white
+            <Link
+                href={LOGIN_FULL_WORKSPACE}
+                className="
+                    relative inline-flex items-center gap-2 px-6 py-3 rounded-xl font-raleway font-bold text-white no-underline
                     bg-gradient-to-r from-[#8B5CF6] via-[#D946EF] to-[#06B6D4]
-                    shadow-realize-xl overflow-hidden flex items-center gap-2
-                    transition-all duration-200
-                    ${generateInactive
-                        ? 'cursor-not-allowed opacity-55 brightness-95 saturate-90 hover:scale-100'
-                        : 'opacity-100 hover:scale-[1.02] active:scale-[0.99]'}
-                `}
+                    shadow-realize-xl overflow-hidden
+                    transition-all duration-200 opacity-100 hover:scale-[1.02] active:scale-[0.99]
+                "
+                title="Sign in to generate images and use the full workspace"
             >
                 <div
                     className="
@@ -290,9 +270,9 @@ export default function CustomToolbar() {
                     blur-2xl opacity-30 -z-10
                 "
                 />
-                <Wand2 size={20} className="drop-shadow-md" />
-                Generate
-            </button>
+                <LogIn size={20} className="drop-shadow-md" />
+                Sign in to generate
+            </Link>
         </div>
     );
 }

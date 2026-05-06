@@ -1,9 +1,18 @@
 'use client';
 
-import { useEditor, useValue, DefaultColorStyle, DefaultSizeStyle, DefaultDashStyle } from 'tldraw';
-import { useEffect } from 'react';
+import {
+    useEditor,
+    useValue,
+    DefaultColorStyle,
+    DefaultSizeStyle,
+    DefaultDashStyle,
+    type TLDefaultColorStyle,
+    type TLDefaultDashStyle,
+    type TLDefaultSizeStyle,
+} from 'tldraw';
+import { useEffect, useMemo, useState } from 'react';
 
-const COLORS = [
+const COLORS: Array<{ name: TLDefaultColorStyle; hex: string }> = [
     { name: 'black', hex: '#1d1d1d' },
     { name: 'grey', hex: '#adb5bd' },
     { name: 'light-violet', hex: '#e9d5ff' },
@@ -18,14 +27,59 @@ const COLORS = [
     { name: 'red', hex: '#ef4444' },
 ];
 
-const OPACITIES = [
-    { label: '10%', value: '0.1' },
-    { label: '50%', value: '0.5' },
-    { label: '100%', value: '1' },
-];
+function normalizeSharedValue<T extends string>(
+    value: T | { type: 'mixed' } | { type: 'shared'; value: T } | null | undefined
+) {
+    if (!value) return null;
+    if (typeof value === 'object') {
+        return value.type === 'shared' ? value.value : null;
+    }
+    return value;
+}
+
+function hexToRgb(hex: string) {
+    const clean = hex.replace('#', '').trim();
+    if (!/^[0-9a-fA-F]{6}$/.test(clean)) return null;
+    return {
+        r: Number.parseInt(clean.slice(0, 2), 16),
+        g: Number.parseInt(clean.slice(2, 4), 16),
+        b: Number.parseInt(clean.slice(4, 6), 16),
+    };
+}
+
+function getNearestColorToken(hex: string): TLDefaultColorStyle {
+    const rgb = hexToRgb(hex);
+    if (!rgb) return 'black';
+
+    let nearest: TLDefaultColorStyle = COLORS[0].name;
+    let minDistance = Number.POSITIVE_INFINITY;
+
+    for (const color of COLORS) {
+        const target = hexToRgb(color.hex);
+        if (!target) continue;
+        const distance =
+            (rgb.r - target.r) ** 2 +
+            (rgb.g - target.g) ** 2 +
+            (rgb.b - target.b) ** 2;
+        if (distance < minDistance) {
+            minDistance = distance;
+            nearest = color.name;
+        }
+    }
+
+    return nearest;
+}
+
+function formatStyleValue(value: string | null | undefined, fallback = 'Mixed') {
+    if (!value) return fallback;
+    return value;
+}
 
 export default function CustomStylePanel() {
     const editor = useEditor();
+    const [customHex, setCustomHex] = useState('#8b5cf6');
+    const [opacityPercent, setOpacityPercent] = useState(100);
+    const [isOpacityDragging, setIsOpacityDragging] = useState(false);
 
     // 1. Force Defaults on Mount
     useEffect(() => {
@@ -33,54 +87,61 @@ export default function CustomStylePanel() {
             editor.setStyleForNextShapes(DefaultColorStyle, 'black');
             editor.setStyleForNextShapes(DefaultDashStyle, 'solid');
             editor.setStyleForNextShapes(DefaultSizeStyle, 's');
+            editor.setOpacityForNextShapes(1);
         }
     }, [editor]);
 
-    // 2. Track Active Styles (With Type Safety Fixes)
-    // FIX: Added 'as any' to bypass TypeScript overlap errors
     const currentColor = useValue('current color', () => {
         if (!editor) return 'black';
         if (editor.getSelectedShapes().length > 0) {
-            const val = editor.getSharedStyles().get(DefaultColorStyle) as any;
-            return val === 'mixed' ? null : val;
+            return normalizeSharedValue(editor.getSharedStyles().get(DefaultColorStyle));
         }
-        return editor.getStyleForNextShape(DefaultColorStyle) as any;
+        return editor.getStyleForNextShape(DefaultColorStyle);
     }, [editor]);
 
     const currentDash = useValue('current dash', () => {
         if (!editor) return 'solid';
         if (editor.getSelectedShapes().length > 0) {
-            const val = editor.getSharedStyles().get(DefaultDashStyle) as any;
-            return val === 'mixed' ? null : val;
+            return normalizeSharedValue(editor.getSharedStyles().get(DefaultDashStyle));
         }
-        return editor.getStyleForNextShape(DefaultDashStyle) as any;
+        return editor.getStyleForNextShape(DefaultDashStyle);
     }, [editor]);
 
     const currentSize = useValue('current size', () => {
         if (!editor) return 's';
         if (editor.getSelectedShapes().length > 0) {
-            const val = editor.getSharedStyles().get(DefaultSizeStyle) as any;
-            return val === 'mixed' ? null : val;
+            return normalizeSharedValue(editor.getSharedStyles().get(DefaultSizeStyle));
         }
-        return editor.getStyleForNextShape(DefaultSizeStyle) as any;
+        return editor.getStyleForNextShape(DefaultSizeStyle);
     }, [editor]);
+
+    const nearestToken = useMemo(() => getNearestColorToken(customHex), [customHex]);
+    const styleSummary = useMemo(() => {
+        return {
+            color: formatStyleValue(currentColor, 'Mixed'),
+            stroke: formatStyleValue(currentDash, 'Mixed'),
+            size: formatStyleValue(currentSize, 'Mixed'),
+            opacity: `${opacityPercent}%`,
+        };
+    }, [currentColor, currentDash, currentSize, opacityPercent]);
 
     if (!editor) return null;
 
     // --- Actions ---
-    function setColor(color: string) {
+    function setColor(color: TLDefaultColorStyle) {
         editor.run(() => {
-            editor.setStyleForNextShapes(DefaultColorStyle, color as any);
+            editor.setStyleForNextShapes(DefaultColorStyle, color);
             const selectedShapes = editor.getSelectedShapes();
             if (selectedShapes.length > 0) {
-                editor.setStyleForSelectedShapes(DefaultColorStyle, color as any);
+                editor.setStyleForSelectedShapes(DefaultColorStyle, color);
             }
         });
     }
 
-    function setOpacity(opacity: string) {
+    function commitOpacity(opacityAsPercent: number) {
+        const clamped = Math.min(100, Math.max(0, opacityAsPercent));
+        const opValue = clamped / 100;
         editor.run(() => {
-            const opValue = parseFloat(opacity);
             editor.setOpacityForNextShapes(opValue);
             const selectedShapes = editor.getSelectedShapes();
             if (selectedShapes.length > 0) {
@@ -89,7 +150,7 @@ export default function CustomStylePanel() {
         });
     }
 
-    function setDash(dash: 'draw' | 'solid') {
+    function setDash(dash: TLDefaultDashStyle) {
         editor.run(() => {
             editor.setStyleForNextShapes(DefaultDashStyle, dash);
             const selectedShapes = editor.getSelectedShapes();
@@ -99,7 +160,7 @@ export default function CustomStylePanel() {
         });
     }
 
-    function setSize(size: 's' | 'm') {
+    function setSize(size: TLDefaultSizeStyle) {
         editor.run(() => {
             editor.setStyleForNextShapes(DefaultSizeStyle, size);
             const selectedShapes = editor.getSelectedShapes();
@@ -109,6 +170,11 @@ export default function CustomStylePanel() {
         });
     }
 
+    function applyNearestCustomColor(hex: string) {
+        const token = getNearestColorToken(hex);
+        setColor(token);
+    }
+
     // Styles
     const activeBtnClass = "bg-purple-100 border-purple-500 text-purple-700 font-bold shadow-inner";
     const inactiveBtnClass = "bg-white border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300";
@@ -116,6 +182,15 @@ export default function CustomStylePanel() {
     return (
         <div className="absolute top-4 right-4 z-[9999] pointer-events-auto select-none">
             <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white/95 backdrop-blur-sm p-3 shadow-xl w-[180px]">
+                <div className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1.5">
+                    <div className="text-[9px] font-bold text-gray-500 uppercase tracking-wider">Active Style</div>
+                    <div className="mt-1 grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] text-gray-600">
+                        <span>Color: {styleSummary.color}</span>
+                        <span>Stroke: {styleSummary.stroke}</span>
+                        <span>Size: {styleSummary.size}</span>
+                        <span>Opacity: {styleSummary.opacity}</span>
+                    </div>
+                </div>
 
                 {/* Colors */}
                 <div>
@@ -131,9 +206,48 @@ export default function CustomStylePanel() {
                                         }`}
                                     style={{ backgroundColor: color.hex }}
                                     title={color.name}
+                                    aria-label={`Set color ${color.name}`}
                                 />
                             );
                         })}
+                    </div>
+                    <div className="mt-2">
+                        <div className="text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wider">Custom Color</div>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="color"
+                                value={customHex}
+                                onChange={(event) => {
+                                    const value = event.target.value;
+                                    setCustomHex(value);
+                                    applyNearestCustomColor(value);
+                                }}
+                                className="h-7 w-8 cursor-pointer rounded border border-gray-300 bg-white p-0.5"
+                                title="Pick custom color"
+                                aria-label="Pick custom color"
+                            />
+                            <input
+                                type="text"
+                                value={customHex}
+                                onChange={(event) => {
+                                    const value = event.target.value;
+                                    setCustomHex(value);
+                                    if (/^#[0-9a-fA-F]{6}$/.test(value)) {
+                                        applyNearestCustomColor(value);
+                                    }
+                                }}
+                                className="h-7 w-full rounded border border-gray-300 px-2 text-[10px] font-mono text-gray-700"
+                                placeholder="#RRGGBB"
+                                aria-label="Custom hex color input"
+                            />
+                        </div>
+                        <div className="mt-1 flex items-center justify-between text-[9px] text-gray-500">
+                            <span>Nearest: {nearestToken}</span>
+                            <span className="inline-flex items-center gap-1">
+                                <span className="inline-block h-2.5 w-2.5 rounded-full border border-gray-300" style={{ backgroundColor: customHex }} />
+                                mapped
+                            </span>
+                        </div>
                     </div>
                 </div>
 
@@ -145,6 +259,7 @@ export default function CustomStylePanel() {
                             onClick={() => setDash('draw')}
                             className={`flex-1 py-1 text-[10px] rounded border transition-all ${currentDash === 'draw' ? activeBtnClass : inactiveBtnClass
                                 }`}
+                            aria-label="Set stroke style to ink"
                         >
                             Ink
                         </button>
@@ -152,6 +267,7 @@ export default function CustomStylePanel() {
                             onClick={() => setDash('solid')}
                             className={`flex-1 py-1 text-[10px] rounded border transition-all ${currentDash === 'solid' ? activeBtnClass : inactiveBtnClass
                                 }`}
+                            aria-label="Set stroke style to liner"
                         >
                             Liner
                         </button>
@@ -166,6 +282,7 @@ export default function CustomStylePanel() {
                             onClick={() => setSize('s')}
                             className={`flex-1 py-1 text-[10px] rounded border transition-all ${currentSize === 's' ? activeBtnClass : inactiveBtnClass
                                 }`}
+                            aria-label="Set size to small"
                         >
                             Small
                         </button>
@@ -173,6 +290,7 @@ export default function CustomStylePanel() {
                             onClick={() => setSize('m')}
                             className={`flex-1 py-1 text-[10px] rounded border transition-all ${currentSize === 'm' ? activeBtnClass : inactiveBtnClass
                                 }`}
+                            aria-label="Set size to medium"
                         >
                             Medium
                         </button>
@@ -182,16 +300,40 @@ export default function CustomStylePanel() {
                 {/* Opacity */}
                 <div>
                     <div className="text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wider">Opacity</div>
-                    <div className="flex gap-1">
-                        {OPACITIES.map((op) => (
-                            <button
-                                key={op.label}
-                                onClick={() => setOpacity(op.value)}
-                                className={`flex-1 py-1 text-[10px] rounded border ${inactiveBtnClass}`}
-                            >
-                                {op.label}
-                            </button>
-                        ))}
+                    <div className="px-1">
+                        <input
+                            type="range"
+                            min={0}
+                            max={100}
+                            step={25}
+                            value={opacityPercent}
+                            onPointerDown={() => setIsOpacityDragging(true)}
+                            onPointerUp={() => {
+                                setIsOpacityDragging(false);
+                                commitOpacity(opacityPercent);
+                            }}
+                            onChange={(event) => {
+                                const nextValue = Number(event.target.value);
+                                setOpacityPercent(nextValue);
+                                if (!isOpacityDragging) {
+                                    commitOpacity(nextValue);
+                                }
+                            }}
+                            className="w-full accent-purple-600"
+                            aria-label="Set opacity from 0 to 100 in steps of 25"
+                        />
+                        <div className="mt-1 flex items-center justify-between text-[10px] text-gray-500">
+                            <span>0%</span>
+                            <span className="font-semibold text-gray-700">{opacityPercent}%</span>
+                            <span>100%</span>
+                        </div>
+                        <div className="mt-1 flex items-center justify-between text-[9px] text-gray-400">
+                            <span>0</span>
+                            <span>25</span>
+                            <span>50</span>
+                            <span>75</span>
+                            <span>100</span>
+                        </div>
                     </div>
                 </div>
             </div>
